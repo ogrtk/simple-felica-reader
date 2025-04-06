@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // 最新の JavaScript 機能を利用（必要に応じて ES5 や ES2015 などに変更）
+    "module": "ESNext", // 出力するモジュール形式（ライブラリの場合、UMD や ESModule 形式にすることも検討）
+    "moduleResolution": "bundler", // node_modules から型定義やモジュールを解決する場合に一般的な設定
+    "lib": [
+      "dom",
+      "ESNext"
+    ],
+    "declaration": true, // 型定義ファイル (.d.ts) を出力する
+    "outDir": "dist", // 出力ディレクトリ
+    "strict": true, // 厳格な型チェックを有効にする
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+  ]
+}
