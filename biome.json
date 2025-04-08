@@ -6,7 +6,14 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "ignore": ["./dist/*"],
+    "include": [
+      "./src/**/*.ts",
+      "./src/**/*.tsx",
+      "__tests__/**/*.ts",
+      "__tests__/**/*.tsx"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -29,10 +36,7 @@
   },
   "overrides": [
     {
-      "include": [
-        "**/*.test.ts",
-        "**/*.test.tsx"
-      ],
+      "include": ["**/*.test.ts", "**/*.test.tsx"],
       "linter": {
         "rules": {
           "complexity": {

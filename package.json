@@ -1,7 +1,7 @@
 {
   "name": "@ogrtk/simple-felica-reader",
   "description": "Reads felica idm, memory, through web usb interface",
-  "version": "0.8.2",
+  "version": "0.8.7",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -13,7 +13,7 @@
   "license": "MIT",
   "scripts": {
     "check": "biome check",
-    "build": "npm run check && tsc"
+    "build": "npm run check && tsc -p ./tsconfig.build.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

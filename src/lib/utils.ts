@@ -1,3 +1,8 @@
+/**
+ * 16進数文字列（空白が含まれていても可）を、対応するASCII文字列に変換
+ * @param hexString
+ * @returns
+ */
 export function hexToAscii(hexString: string): string {
   // スペースを削除して16進数の文字列を連結
   const cleanHexString = hexString.replace(/\s+/g, "");
@@ -24,6 +29,12 @@ export function hexToAscii(hexString: string): string {
   return asciiString;
 }
 
+/**
+ * Uint8Array（バイト配列）内の各値を16進数の文字列に変換し、各値ごとにスペースを付与して連結
+ * @param argData
+ * @param trim
+ * @returns
+ */
 export function arrayToHex(argData: Uint8Array, trim = false): string {
   let retVal = "";
   for (const val of argData) {
@@ -34,7 +45,11 @@ export function arrayToHex(argData: Uint8Array, trim = false): string {
   }
   return trim ? retVal.replaceAll(" ", "") : retVal;
 }
-
+/**
+ * DataView に含まれるバイナリデータを、16進数の文字列（各バイトごとにスペース付き）に変換
+ * @param argData
+ * @returns
+ */
 export function binArrayToHex(argData: DataView | undefined): string {
   if (!argData) return "";
   let retVal = "";
@@ -47,16 +62,17 @@ export function binArrayToHex(argData: DataView | undefined): string {
   return retVal;
 }
 
+/**
+ * DataView の内容を新たな Uint8Array にコピーして返します。
+ * @param argData
+ * @returns
+ */
 export function dataViewToUint8Array(argData: DataView): Uint8Array {
   const retVal = new Uint8Array(argData.byteLength);
   for (let i = 0; i < argData.byteLength; i++) {
     retVal[i] = argData.getUint8(i);
   }
   return retVal;
-}
-
-export async function sleep(msec: number) {
-  return new Promise((resolve) => setTimeout(resolve, msec));
 }
 
 /**
@@ -73,4 +89,13 @@ export function hexStringToByteArray(hexString: string): number[] {
     byteArray.push(Number.parseInt(hexString.slice(i, i + 2), 16));
   }
   return byteArray;
+}
+
+/**
+ * sleep
+ * @param msec
+ * @returns
+ */
+export async function sleep(msec: number) {
+  return new Promise((resolve) => setTimeout(resolve, msec));
 }
