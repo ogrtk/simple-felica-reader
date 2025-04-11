@@ -1,91 +1,58 @@
-/**
- * 16進数文字列（空白が含まれていても可）を、対応するASCII文字列に変換
- * @param hexString
- * @returns
- */
-export function hexToAscii(hexString) {
-    // スペースを削除して16進数の文字列を連結
-    const cleanHexString = hexString.replace(/\s+/g, "");
-    // 奇数長の16進数は無効
-    if (cleanHexString.length % 2 !== 0) {
-        throw new Error("Invalid hex string: length must be even.");
-    }
-    // 16進数を2文字ずつ分割してASCII文字に変換
-    let asciiString = "";
-    for (let i = 0; i < cleanHexString.length; i += 2) {
-        const hexPair = cleanHexString.slice(i, i + 2); // 2文字を切り出し
-        const asciiValue = Number.parseInt(hexPair, 16);
-        // 無効な16進数が含まれている場合エラーをスロー
-        if (Number.isNaN(asciiValue)) {
-            throw new Error(`Invalid hex pair: ${hexPair}`);
-        }
-        asciiString += String.fromCharCode(asciiValue);
-    }
-    return asciiString;
+function s(t) {
+  const r = t.replace(/\s+/g, "");
+  if (r.length % 2 !== 0)
+    throw new Error("Invalid hex string: length must be even.");
+  let e = "";
+  for (let i = 0; i < r.length; i += 2) {
+    const n = r.slice(i, i + 2), o = Number.parseInt(n, 16);
+    if (Number.isNaN(o))
+      throw new Error(`Invalid hex pair: ${n}`);
+    e += String.fromCharCode(o);
+  }
+  return e;
 }
-/**
- * Uint8Array（バイト配列）内の各値を16進数の文字列に変換し、各値ごとにスペースを付与して連結
- * @param argData
- * @param trim
- * @returns
- */
-export function arrayToHex(argData, trim = false) {
-    let retVal = "";
-    for (const val of argData) {
-        let str = val.toString(16);
-        // 0～F の桁合わせ
-        str = val < 0x10 ? `0${str}` : str;
-        retVal += `${str.toUpperCase()} `;
-    }
-    return trim ? retVal.replaceAll(" ", "") : retVal;
+function l(t, r = !1) {
+  let e = "";
+  for (const i of t) {
+    let n = i.toString(16);
+    n = i < 16 ? `0${n}` : n, e += `${n.toUpperCase()} `;
+  }
+  return r ? e.replaceAll(" ", "") : e;
 }
-/**
- * DataView に含まれるバイナリデータを、16進数の文字列（各バイトごとにスペース付き）に変換
- * @param argData
- * @returns
- */
-export function binArrayToHex(argData) {
-    if (!argData)
-        return "";
-    let retVal = "";
-    for (let idx = 0; idx < argData.byteLength; idx++) {
-        const bt = argData.getUint8(idx);
-        let str = bt.toString(16);
-        str = bt < 0x10 ? `0${str}` : str;
-        retVal += `${str.toUpperCase()} `;
-    }
-    return retVal;
+function a(t) {
+  if (!t) return "";
+  let r = "";
+  for (let e = 0; e < t.byteLength; e++) {
+    const i = t.getUint8(e);
+    let n = i.toString(16);
+    n = i < 16 ? `0${n}` : n, r += `${n.toUpperCase()} `;
+  }
+  return r;
 }
-/**
- * DataView の内容を新たな Uint8Array にコピーして返します。
- * @param argData
- * @returns
- */
-export function dataViewToUint8Array(argData) {
-    const retVal = new Uint8Array(argData.byteLength);
-    for (let i = 0; i < argData.byteLength; i++) {
-        retVal[i] = argData.getUint8(i);
-    }
-    return retVal;
+function c(t) {
+  const r = new Uint8Array(t.byteLength);
+  for (let e = 0; e < t.byteLength; e++)
+    r[e] = t.getUint8(e);
+  return r;
 }
-/**
- * 16進数文字列をバイト配列に変換する。
- */
-export function hexStringToByteArray(hexString) {
-    if (!/^([0-9a-fA-F]{2})+$/.test(hexString)) {
-        throw new Error("Invalid input. The string must be hexadecimal characters.");
-    }
-    const byteArray = [];
-    for (let i = 0; i < hexString.length; i += 2) {
-        byteArray.push(Number.parseInt(hexString.slice(i, i + 2), 16));
-    }
-    return byteArray;
+function u(t) {
+  if (!/^([0-9a-fA-F]{2})+$/.test(t))
+    throw new Error(
+      "Invalid input. The string must be hexadecimal characters."
+    );
+  const r = [];
+  for (let e = 0; e < t.length; e += 2)
+    r.push(Number.parseInt(t.slice(e, e + 2), 16));
+  return r;
 }
-/**
- * sleep
- * @param msec
- * @returns
- */
-export async function sleep(msec) {
-    return new Promise((resolve) => setTimeout(resolve, msec));
+async function f(t) {
+  return new Promise((r) => setTimeout(r, t));
 }
+export {
+  l as arrayToHex,
+  a as binArrayToHex,
+  c as dataViewToUint8Array,
+  u as hexStringToByteArray,
+  s as hexToAscii,
+  f as sleep
+};

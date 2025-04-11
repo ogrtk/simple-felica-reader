@@ -1,5 +1,5 @@
-import { FelicaReaderRcS300 } from "./FelicaReaderRcS300";
-import type { IFelicaReader } from "./IFelicaReader";
+import { FelicaReaderRcS300 } from './FelicaReaderRcS300';
+import { IFelicaReader } from './IFelicaReader';
 export declare const felicaReaderModels: {
     readonly "RC-S300/S": {
         readonly vendorId: 1356;

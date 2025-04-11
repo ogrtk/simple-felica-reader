@@ -1,178 +1,132 @@
-import { arrayToHex, binArrayToHex, dataViewToUint8Array, sleep, } from "./utils";
-/**
- *
- */
-export class FelicaReaderRcS300 {
-    device;
-    debugEnabled;
-    seq = 0;
+var m = Object.defineProperty;
+var w = (o, t, e) => t in o ? m(o, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : o[t] = e;
+var u = (o, t, e) => w(o, typeof t != "symbol" ? t + "" : t, e);
+import { sleep as c, arrayToHex as p, binArrayToHex as l, dataViewToUint8Array as b } from "./utils.js";
+class U {
+  constructor(t, e = !1) {
+    u(this, "seq", 0);
     // RC-S300 のコマンド定義
-    commands = {
-        startTransparent: [0xff, 0x50, 0x00, 0x00, 0x02, 0x81, 0x00, 0x00],
-        turnOn: [0xff, 0x50, 0x00, 0x00, 0x02, 0x84, 0x00, 0x00],
-        endTransparent: [0xff, 0x50, 0x00, 0x00, 0x02, 0x82, 0x00, 0x00],
-        turnOff: [0xff, 0x50, 0x00, 0x00, 0x02, 0x83, 0x00, 0x00],
-        communicateThruEX: [0xff, 0x50, 0x00, 0x01, 0x00],
-        communicateThruEXFooter: [0x00, 0x00, 0x00],
+    u(this, "commands", {
+      startTransparent: [255, 80, 0, 0, 2, 129, 0, 0],
+      turnOn: [255, 80, 0, 0, 2, 132, 0, 0],
+      endTransparent: [255, 80, 0, 0, 2, 130, 0, 0],
+      turnOff: [255, 80, 0, 0, 2, 131, 0, 0],
+      communicateThruEX: [255, 80, 0, 1, 0],
+      communicateThruEXFooter: [0, 0, 0]
+    });
+    u(this, "confSet");
+    this.device = t, this.debugEnabled = e;
+    const n = (i, h) => i.alternate.endpoints.find((f) => f.direction === h);
+    if (!this.device.configuration)
+      throw new Error("configurationがありません");
+    const s = this.device.configuration, r = s.interfaces[s.configurationValue], a = n(r, "in");
+    if (!a) throw new Error("入力USBエンドポイントが取得できませんでした");
+    const d = n(r, "out");
+    if (!d) throw new Error("出力USBエンドポイントが取得できませんでした");
+    this.confSet = {
+      confValue: s.configurationValue,
+      interfaceNum: r.interfaceNumber,
+      endPointInNum: a.endpointNumber,
+      endPointInPacketSize: a.packetSize,
+      endPointOutNum: d.endpointNumber,
+      endPointOutPacketSize: d.packetSize
     };
-    confSet;
-    constructor(device, debugEnabled = false) {
-        this.device = device;
-        this.debugEnabled = debugEnabled;
-        const getEndPoint = (usbIf, direction) => usbIf.alternate.endpoints.find((ep) => ep.direction === direction);
-        if (!this.device.configuration)
-            throw new Error("configurationがありません");
-        const usbConf = this.device.configuration;
-        const usbIf = usbConf.interfaces[usbConf.configurationValue];
-        const inEp = getEndPoint(usbIf, "in");
-        if (!inEp)
-            throw new Error("入力USBエンドポイントが取得できませんでした");
-        const outEp = getEndPoint(usbIf, "out");
-        if (!outEp)
-            throw new Error("出力USBエンドポイントが取得できませんでした");
-        this.confSet = {
-            confValue: usbConf.configurationValue,
-            interfaceNum: usbIf.interfaceNumber,
-            endPointInNum: inEp.endpointNumber,
-            endPointInPacketSize: inEp.packetSize,
-            endPointOutNum: outEp.endpointNumber,
-            endPointOutPacketSize: outEp.packetSize,
-        };
-    }
-    async open() {
-        const { confValue, interfaceNum } = this.confSet;
-        await this.device.open();
-        await this.device.selectConfiguration(confValue); // USBデバイスの構成を選択
-        await this.device.claimInterface(interfaceNum); // USBデバイスの指定インターフェイスを排他アクセスにする
-        await this.sendUsb(this.commands.endTransparent, "End Transeparent Session");
-        await this.recvUsb(64);
-        await this.sendUsb(this.commands.startTransparent, "Start Transeparent Session");
-        await this.recvUsb(64);
-        await this.sendUsb(this.commands.turnOff, "Turn Off RF");
-        await sleep(50);
-        await this.recvUsb(64);
-        await sleep(50);
-        await this.sendUsb(this.commands.turnOn, "Turn On RF");
-        await sleep(50);
-        await this.recvUsb(64);
-        await sleep(50);
-    }
-    /**
-     * デバイスのクローズ
-     * @returns
-     */
-    async close() {
-        const { interfaceNum } = this.confSet;
-        await this.sendUsb(this.commands.turnOff, "Turn Off RF");
-        await sleep(50);
-        await this.recvUsb(64);
-        await sleep(50);
-        await this.sendUsb(this.commands.endTransparent, "End Transeparent Session");
-        await this.recvUsb(64);
-        // USBデバイスの指定インターフェイスを排他アクセスを解放する
-        await this.device.releaseInterface(interfaceNum);
-        await this.device.close();
-        return;
-    }
-    /**
-     * FeliCaの操作
-     * communicateThruEXコマンドでWrapして送信
-     * @param felicaRequest 処理リクエスト内容
-     * @param description 処理説明（デバッグ用）
-     * @returns
-     */
-    async operateFelica(felicaRequest, description) {
-        const wrappedCommand = await this.wrapCTXIns(felicaRequest);
-        await this.sendUsb(wrappedCommand, description);
-        const cTXResponse = await this.recvUsb(64);
-        return this.unwrapCTXResponse(cTXResponse);
-    }
-    /**
-     * PasoRiへの送信
-     * @param data
-     * @returns
-     */
-    async sendUsb(data, trcMsg = "") {
-        /**
-         * PasoRiのリクエストヘッダー付与
-         */
-        const addReqHeader = (argData) => {
-            const dataLen = argData.length;
-            const SLOTNUMBER = 0x00;
-            const retVal = new Uint8Array(10 + dataLen);
-            retVal[0] = 0x6b; // ヘッダー作成
-            retVal[1] = 255 & dataLen; // length をリトルエンディアン
-            retVal[2] = (dataLen >> 8) & 255;
-            retVal[3] = (dataLen >> 16) & 255;
-            retVal[4] = (dataLen >> 24) & 255;
-            retVal[5] = SLOTNUMBER; // タイムスロット番号
-            retVal[6] = ++this.seq; // 認識番号
-            0 !== dataLen && retVal.set(argData, 10); // コマンド追加
-            return retVal;
-        };
-        const reqData = addReqHeader(new Uint8Array(data));
-        await this.device.transferOut(this.confSet.endPointOutNum, reqData);
-        if (this.debugEnabled)
-            console.log(`${trcMsg} Send: ${arrayToHex(reqData)}`);
-    }
-    /**
-     * PasoRiの応答取得
-     * @param rcvLen
-     * @returns
-     */
-    async recvUsb(rcvLen) {
-        const { endPointInNum } = this.confSet;
-        const res = await this.device.transferIn(endPointInNum, rcvLen);
-        if (this.debugEnabled)
-            console.log(`Recv: ${binArrayToHex(res.data)}`);
-        return res;
-    }
-    /**
-     * Felica コマンドを RC-S300 の communicateThruEX 命令形式にラップする。
-     */
-    async wrapCTXIns(felicaRequest) {
-        const felicaReqLen = felicaRequest.length;
-        const cTX = [...this.commands.communicateThruEX];
-        cTX.push((felicaReqLen >> 8) & 0xff, felicaReqLen & 0xff);
-        cTX.push(...felicaRequest);
-        cTX.push(...this.commands.communicateThruEXFooter);
-        return cTX;
-    }
-    /**
-     * communicateThruEX レスポンスから Felica 応答データを取り出す。
-     */
-    unwrapCTXResponse(cTXResponse) {
-        if (!cTXResponse.data)
-            return undefined;
-        const data = dataViewToUint8Array(cTXResponse.data);
-        const idx = data.indexOf(0x97);
-        if (idx < 0)
-            return undefined;
-        const lenIndex = idx + 1;
-        const length = data[lenIndex];
-        const allData = Array.from(data.slice(lenIndex + 1, lenIndex + 1 + length));
-        return {
-            length,
-            responseCode: allData[1],
-            data: allData.slice(2),
-        };
-    }
-    /**
-     * オープン状態の取得
-     */
-    get isOpened() {
-        return this.device.opened;
-    }
-    /**
-     * ベンダIDの取得
-     */
-    get vendorId() {
-        return this.device.vendorId;
-    }
-    /**
-     * プロダクトIDの取得
-     */
-    get productId() {
-        return this.device.productId;
-    }
+  }
+  async open() {
+    const { confValue: t, interfaceNum: e } = this.confSet;
+    await this.device.open(), await this.device.selectConfiguration(t), await this.device.claimInterface(e), await this.sendUsb(
+      this.commands.endTransparent,
+      "End Transeparent Session"
+    ), await this.recvUsb(64), await this.sendUsb(
+      this.commands.startTransparent,
+      "Start Transeparent Session"
+    ), await this.recvUsb(64), await this.sendUsb(this.commands.turnOff, "Turn Off RF"), await c(50), await this.recvUsb(64), await c(50), await this.sendUsb(this.commands.turnOn, "Turn On RF"), await c(50), await this.recvUsb(64), await c(50);
+  }
+  /**
+   * デバイスのクローズ
+   * @returns
+   */
+  async close() {
+    const { interfaceNum: t } = this.confSet;
+    await this.sendUsb(this.commands.turnOff, "Turn Off RF"), await c(50), await this.recvUsb(64), await c(50), await this.sendUsb(
+      this.commands.endTransparent,
+      "End Transeparent Session"
+    ), await this.recvUsb(64), await this.device.releaseInterface(t), await this.device.close();
+  }
+  /**
+   * FeliCaの操作
+   * communicateThruEXコマンドでWrapして送信
+   * @param felicaRequest 処理リクエスト内容
+   * @param description 処理説明（デバッグ用）
+   * @returns
+   */
+  async operateFelica(t, e) {
+    const n = await this.wrapCTXIns(t);
+    await this.sendUsb(n, e);
+    const s = await this.recvUsb(64);
+    return this.unwrapCTXResponse(s);
+  }
+  /**
+   * PasoRiへの送信
+   * @param data
+   * @returns
+   */
+  async sendUsb(t, e = "") {
+    const s = ((r) => {
+      const a = r.length, d = 0, i = new Uint8Array(10 + a);
+      return i[0] = 107, i[1] = 255 & a, i[2] = a >> 8 & 255, i[3] = a >> 16 & 255, i[4] = a >> 24 & 255, i[5] = d, i[6] = ++this.seq, a !== 0 && i.set(r, 10), i;
+    })(new Uint8Array(t));
+    await this.device.transferOut(this.confSet.endPointOutNum, s), this.debugEnabled && console.log(`${e} Send: ${p(s)}`);
+  }
+  /**
+   * PasoRiの応答取得
+   * @param rcvLen
+   * @returns
+   */
+  async recvUsb(t) {
+    const { endPointInNum: e } = this.confSet, n = await this.device.transferIn(e, t);
+    return this.debugEnabled && console.log(`Recv: ${l(n.data)}`), n;
+  }
+  /**
+   * Felica コマンドを RC-S300 の communicateThruEX 命令形式にラップする。
+   */
+  async wrapCTXIns(t) {
+    const e = t.length, n = [...this.commands.communicateThruEX];
+    return n.push(e >> 8 & 255, e & 255), n.push(...t), n.push(...this.commands.communicateThruEXFooter), n;
+  }
+  /**
+   * communicateThruEX レスポンスから Felica 応答データを取り出す。
+   */
+  unwrapCTXResponse(t) {
+    if (!t.data) return;
+    const e = b(t.data), n = e.indexOf(151);
+    if (n < 0) return;
+    const s = n + 1, r = e[s], a = Array.from(e.slice(s + 1, s + 1 + r));
+    return {
+      length: r,
+      responseCode: a[1],
+      data: a.slice(2)
+    };
+  }
+  /**
+   * オープン状態の取得
+   */
+  get isOpened() {
+    return this.device.opened;
+  }
+  /**
+   * ベンダIDの取得
+   */
+  get vendorId() {
+    return this.device.vendorId;
+  }
+  /**
+   * プロダクトIDの取得
+   */
+  get productId() {
+    return this.device.productId;
+  }
 }
+export {
+  U as FelicaReaderRcS300
+};

@@ -1,4 +1,4 @@
-import type { FelicaOperationResult, IFelicaReader } from "./IFelicaReader";
+import { FelicaOperationResult, IFelicaReader } from './IFelicaReader';
 /**
  *
  */
