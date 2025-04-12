@@ -1,7 +1,7 @@
 {
   "name": "@ogrtk/simple-felica-reader",
   "description": "Reads felica idm, memory, through web usb interface",
-  "version": "0.8.10",
+  "version": "1.0.0",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
