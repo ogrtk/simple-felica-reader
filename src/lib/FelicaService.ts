@@ -134,7 +134,7 @@ export class FelicaService {
    * コンストラクタ
    * @param felicaReader
    */
-  protected constructor(public felicaReader: IFelicaReader) {}
+  private constructor(public felicaReader: IFelicaReader) {}
 
   /**
    * デバイスのオープン

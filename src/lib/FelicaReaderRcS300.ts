@@ -7,7 +7,7 @@ import {
 } from "./utils";
 
 /**
- *
+ *  RC-S300によるFeliCa関係の操作を加えたUSBDeviceのラッパークラス
  */
 export class FelicaReaderRcS300 implements IFelicaReader {
   private seq = 0;
@@ -21,6 +21,7 @@ export class FelicaReaderRcS300 implements IFelicaReader {
     communicateThruEXFooter: [0x00, 0x00, 0x00],
   };
 
+  // デバイスの各種情報
   private confSet: {
     confValue: number;
     interfaceNum: number;
@@ -30,6 +31,11 @@ export class FelicaReaderRcS300 implements IFelicaReader {
     endPointOutPacketSize: number;
   };
 
+  /**
+   * コンストラクタ
+   * @param device
+   * @param debugEnabled
+   */
   constructor(
     private device: USBDevice,
     private debugEnabled = false,
@@ -59,6 +65,10 @@ export class FelicaReaderRcS300 implements IFelicaReader {
     };
   }
 
+  /**
+   * デバイスのオープン
+   * @returns
+   */
   public async open(): Promise<void> {
     const { confValue, interfaceNum } = this.confSet;
 
